@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Loja Virtual{% endblock %}</title>
+</head>
+<body>
+    <header>
+        <h1>Loja Virtual - Gerenciamento de Produtos</h1>
+        <nav>
+            <a href="{{ url_for('listar_produtos') }}">Listar Produtos</a> |
+            <a href="{{ url_for('adicionar_produto') }}">Adicionar Produto</a>
+        </nav>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>Projeto de Ciência de Dados I - 2025</p>
+    </footer>
+</body>
+</html>
+
+</html> 

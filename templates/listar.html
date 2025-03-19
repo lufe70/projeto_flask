@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}Lista de Produtos{% endblock %}
+
+{% block content %}
+<h2>Lista de Produtos</h2>
+
+{% if produtos %}
+    <table border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Preço</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for produto in produtos %}
+            <tr>
+                <td>{{ produto.id }}</td>
+                <td>{{ produto.nome }}</td>
+                <td>R$ {{ "%.2f"|format(produto.preco) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>Nenhum produto cadastrado.</p>
+{% endif %}
+
+<p><a href="{{ url_for('adicionar_produto') }}">Adicionar Novo Produto</a></p>
+{% endblock %}
