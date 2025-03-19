@@ -25,6 +25,20 @@
                 </div>
                 <div class="form-text">Apenas valores positivos.</div>
             </div>
+            
+            <div class="mb-3">
+                <label for="categoria_id" class="form-label">Categoria:</label>
+                <select class="form-select" id="categoria_id" name="categoria_id">
+                    <option value="">-- Selecione uma categoria (opcional) --</option>
+                    {% for categoria in categorias %}
+                        <option value="{{ categoria.id }}" 
+                            {% if produto.categoria_id == categoria.id %}selected{% endif %}>
+                            {{ categoria.nome }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <div class="form-text">Você pode deixar sem categoria ou criar uma nova na seção Categorias.</div>
+            </div>
 
             <div class="mb-3">
                 <label for="descricao" class="form-label">Descrição:</label>

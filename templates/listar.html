@@ -10,6 +10,34 @@
             <i class="fas fa-plus"></i> Novo Produto
         </a>
     </div>
+    
+    <!-- Filtro por categoria -->
+    <div class="card-body bg-light border-bottom pb-0">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-6">
+                <label for="categoria" class="form-label">Filtrar por categoria:</label>
+                <select name="categoria" id="categoria" class="form-select">
+                    <option value="">-- Todas as Categorias --</option>
+                    {% for categoria in categorias %}
+                        <option value="{{ categoria.id }}" {% if categoria_filtro == categoria.id %}selected{% endif %}>
+                            {{ categoria.nome }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 mb-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter"></i> Filtrar
+                </button>
+                {% if categoria_filtro %}
+                    <a href="{{ url_for('listar_produtos') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i> Limpar
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+    
     <div class="card-body">
         {% if produtos %}
             <div class="table-responsive">
@@ -18,6 +46,7 @@
                         <tr>
                             <th>ID</th>
                             <th>Nome</th>
+                            <th>Categoria</th>
                             <th>Preço</th>
                             <th>Descrição</th>
                             <th class="text-center">Ações</th>
@@ -28,6 +57,13 @@
                         <tr>
                             <td>{{ produto.id }}</td>
                             <td>{{ produto.nome }}</td>
+                            <td>
+                                {% if produto.categoria %}
+                                    <span class="badge bg-info">{{ produto.categoria.nome }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Sem categoria</span>
+                                {% endif %}
+                            </td>
                             <td>R$ {{ "%.2f"|format(produto.preco) }}</td>
                             <td>{{ produto.descricao }}</td>
                             <td class="text-center">

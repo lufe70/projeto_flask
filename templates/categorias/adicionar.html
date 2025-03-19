@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Adicionar Categoria{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-info text-white">
+        <h2 class="mb-0"><i class="fas fa-plus-circle"></i> Adicionar Nova Categoria</h2>
+    </div>
+    <div class="card-body">
+        <form method="post" novalidate>
+            <div class="mb-3">
+                <label for="nome" class="form-label">Nome da Categoria:</label>
+                <input type="text" class="form-control" id="nome" name="nome" 
+                       value="{{ categoria.nome if categoria else '' }}" 
+                       required minlength="2" maxlength="50">
+                <div class="form-text">Informe um nome único para a categoria (2-50 caracteres).</div>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="{{ url_for('listar_categorias') }}" class="btn btn-secondary me-md-2">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+                <button type="submit" class="btn btn-info text-white">
+                    <i class="fas fa-save"></i> Salvar Categoria
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
