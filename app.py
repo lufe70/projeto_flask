@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
@@ -6,6 +6,7 @@ from flask_migrate import Migrate
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///produtos.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = 'chave-secreta-para-flash-messages'  # Necessário para flash messages
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
@@ -40,6 +41,34 @@ def adicionar_produto():
         return redirect(url_for('listar_produtos'))
     
     return render_template('adicionar.html')
+
+# Nova rota para editar produto
+@app.route('/editar/<int:id>', methods=['GET', 'POST'])
+def editar_produto(id):
+    produto = Produto.query.get_or_404(id)
+    
+    if request.method == 'POST':
+        produto.nome = request.form['nome']
+        produto.preco = float(request.form['preco'])
+        produto.descricao = request.form.get('descricao', '')
+        
+        db.session.commit()
+        flash('Produto atualizado com sucesso!', 'success')
+        return redirect(url_for('listar_produtos'))
+    
+    return render_template('editar.html', produto=produto)
+
+# Nova rota para excluir produto
+@app.route('/excluir/<int:id>', methods=['POST'])
+def excluir_produto(id):
+    produto = Produto.query.get_or_404(id)
+    
+    db.session.delete(produto)
+    db.session.commit()
+    
+    flash('Produto excluído com sucesso!', 'success')
+    return redirect(url_for('listar_produtos'))
+
 
 # Criar tabelas e inserir dados de exemplo
 with app.app_context():

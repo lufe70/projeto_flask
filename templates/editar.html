@@ -1,39 +1,38 @@
 {% extends 'base.html' %}
 
-{% block title %}Adicionar Produto{% endblock %}
+{% block title %}Editar Produto{% endblock %}
 
 {% block content %}
 <div class="card">
-    <div class="card-header bg-success text-white">
-        <h2 class="mb-0"><i class="fas fa-plus-circle"></i> Adicionar Novo Produto</h2>
+    <div class="card-header bg-warning">
+        <h2 class="mb-0"><i class="fas fa-edit"></i> Editar Produto</h2>
     </div>
     <div class="card-body">
         <form method="post">
             <div class="mb-3">
                 <label for="nome" class="form-label">Nome do Produto:</label>
-                <input type="text" class="form-control" id="nome" name="nome" required>
-                <div class="form-text">Informe o nome completo do produto.</div>
+                <input type="text" class="form-control" id="nome" name="nome" value="{{ produto.nome }}" required>
             </div>
 
             <div class="mb-3">
                 <label for="preco" class="form-label">Preço (R$):</label>
                 <div class="input-group">
                     <span class="input-group-text">R$</span>
-                    <input type="number" class="form-control" id="preco" name="preco" step="0.01" min="0" required>
+                    <input type="number" class="form-control" id="preco" name="preco" step="0.01" min="0" value="{{ produto.preco }}" required>
                 </div>
             </div>
 
             <div class="mb-3">
                 <label for="descricao" class="form-label">Descrição:</label>
-                <textarea class="form-control" id="descricao" name="descricao" rows="3" placeholder="Descreva o produto..."></textarea>
+                <textarea class="form-control" id="descricao" name="descricao" rows="3">{{ produto.descricao }}</textarea>
             </div>
 
             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                 <a href="{{ url_for('listar_produtos') }}" class="btn btn-secondary me-md-2">
-                    <i class="fas fa-times"></i> Cancelar
+                    <i class="fas fa-arrow-left"></i> Voltar
                 </a>
-                <button type="submit" class="btn btn-success">
-                    <i class="fas fa-save"></i> Salvar Produto
+                <button type="submit" class="btn btn-warning">
+                    <i class="fas fa-save"></i> Atualizar Produto
                 </button>
             </div>
         </form>
