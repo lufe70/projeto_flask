@@ -3,3 +3,4 @@ flask-sqlalchemy
 Werkzeug
 Jinja2
 SQLAlchemy
+flask-migrate
