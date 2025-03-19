@@ -8,23 +8,32 @@
         <h2 class="mb-0"><i class="fas fa-edit"></i> Editar Produto</h2>
     </div>
     <div class="card-body">
-        <form method="post">
+        <form method="post" novalidate>
             <div class="mb-3">
                 <label for="nome" class="form-label">Nome do Produto:</label>
-                <input type="text" class="form-control" id="nome" name="nome" value="{{ produto.nome }}" required>
+                <input type="text" class="form-control" id="nome" name="nome" 
+                       value="{{ produto.nome }}" required minlength="3" maxlength="100">
+                <div class="form-text">Informe o nome completo do produto (3-100 caracteres).</div>
             </div>
 
             <div class="mb-3">
                 <label for="preco" class="form-label">Preço (R$):</label>
                 <div class="input-group">
                     <span class="input-group-text">R$</span>
-                    <input type="number" class="form-control" id="preco" name="preco" step="0.01" min="0" value="{{ produto.preco }}" required>
+                    <input type="number" class="form-control" id="preco" name="preco" 
+                           step="0.01" min="0" value="{{ produto.preco }}" required>
                 </div>
+                <div class="form-text">Apenas valores positivos.</div>
             </div>
 
             <div class="mb-3">
                 <label for="descricao" class="form-label">Descrição:</label>
-                <textarea class="form-control" id="descricao" name="descricao" rows="3">{{ produto.descricao }}</textarea>
+                <textarea class="form-control" id="descricao" name="descricao" 
+                          rows="3" maxlength="500">{{ produto.descricao }}</textarea>
+                <div class="form-text">Máximo de 500 caracteres.</div>
+                <div class="char-counter text-muted mt-1">
+                    <small id="descricao-counter">{{ produto.descricao|length }}</small>/500 caracteres
+                </div>
             </div>
 
             <div class="d-grid gap-2 d-md-flex justify-content-md-end">
