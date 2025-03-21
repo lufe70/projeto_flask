@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ produto.nome }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h2 class="mb-0">Detalhes do Produto</h2>
+        <a href="{{ url_for('listar_produtos') }}" class="btn btn-light">
+            <i class="fas fa-arrow-left"></i> Voltar para Lista
+        </a>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4 text-center mb-4">
+                {% if produto.imagem_nome %}
+                    <img src="{{ url_for('uploaded_file', filename=produto.imagem_nome) }}" 
+                         alt="Imagem de {{ produto.nome }}" 
+                         class="img-fluid rounded shadow" 
+                         style="max-height: 300px;">
+                    <p class="text-muted mt-2"><small>Atualizada em: {{ produto.imagem_data.strftime('%d/%m/%Y %H:%M') }}</small></p>
+                {% else %}
+                    <div class="border rounded p-5 bg-light d-flex align-items-center justify-content-center" style="height: 300px;">
+                        <div class="text-muted">
+                            <i class="fas fa-image fa-5x mb-3"></i>
+                            <p>Sem imagem disponível</p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="col-md-8">
+                <h1 class="mb-3">{{ produto.nome }}</h1>
+                
+                <div class="d-flex align-items-center mb-3">
+                    {% if produto.categoria %}
+                        <span class="badge bg-info me-2 p-2">{{ produto.categoria.nome }}</span>
+                    {% else %}
+                        <span class="badge bg-secondary me-2 p-2">Sem categoria</span>
+                    {% endif %}
+                    <span class="ms-3 fs-4 fw-bold text-primary">R$ {{ "%.2f"|format(produto.preco) }}</span>
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-align-left"></i> Descrição</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if produto.descricao %}
+                            <p>{{ produto.descricao }}</p>
+                        {% else %}
+                            <p class="text-muted">Nenhuma descrição disponível.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('editar_produto', id=produto.id) }}" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Editar Produto
+                    </a>
+                    
+                    <!-- Botão que aciona modal para confirmar exclusão -->
+                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ produto.id }}">
+                        <i class="fas fa-trash"></i> Excluir Produto
+                    </button>
+                </div>
+                
+                <!-- Modal de confirmação de exclusão -->
+                <div class="modal fade" id="deleteModal{{ produto.id }}" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header bg-danger text-white">
+                                <h5 class="modal-title" id="deleteModalLabel">Confirmar Exclusão</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                Tem certeza que deseja excluir o produto <strong>{{ produto.nome }}</strong>?
+                                <p class="text-danger mt-2"><small>Esta ação não pode ser desfeita.</small></p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <form action="{{ url_for('excluir_produto', id=produto.id) }}" method="post">
+                                    <button type="submit" class="btn btn-danger">Confirmar Exclusão</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -112,7 +112,93 @@
                         } else {
                             counter.classList.remove('text-danger');
                         }
-                    });
+                        
+            // Inicializar tooltips do Bootstrap
+            const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => 
+                new bootstrap.Tooltip(tooltipTriggerEl)
+            );
+            
+            // Preview de imagem ao fazer upload
+            const imageInputs = document.querySelectorAll('input[type="file"][accept*="image"]');
+            imageInputs.forEach(function(input) {
+                input.addEventListener('change', function() {
+                    const preview = document.getElementById('preview');
+                    const fileReader = new FileReader();
+                    
+                    // Verificar se há arquivo selecionado
+                    if (this.files && this.files[0]) {
+                        // Verificar o checkbox de manter imagem atual (em edição)
+                        const manterImagemCheck = document.getElementById('manter_imagem');
+                        if (manterImagemCheck) {
+                            manterImagemCheck.checked = false;
+                        }
+                        
+                        fileReader.onload = function(e) {
+                            preview.src = e.target.result;
+                            preview.style.display = 'block';
+                        };
+                        
+                        fileReader.readAsDataURL(this.files[0]);
+                    } else {
+                        preview.style.display = 'none';
+                    }
+                });
+            });
+            
+            // Gerenciar o comportamento do checkbox "manter imagem"
+            const manterImagemCheck = document.getElementById('manter_imagem');
+            if (manterImagemCheck) {
+                manterImagemCheck.addEventListener('change', function() {
+                    const imageInput = document.getElementById('imagem');
+                    const preview = document.getElementById('preview');
+                    
+                    if (this.checked) {
+                        // Se escolher manter imagem, limpar o input de arquivo e o preview
+                        imageInput.value = '';
+                        preview.style.display = 'none';
+                    }
+                });
+            }
+            
+            // Abrir modal de imagem em tamanho maior ao clicar nas miniaturas
+            const thumbnails = document.querySelectorAll('.img-thumbnail[data-bs-toggle="tooltip"]');
+            thumbnails.forEach(function(thumb) {
+                thumb.addEventListener('click', function() {
+                    const modalId = 'imageModal';
+                    let modal = document.getElementById(modalId);
+                    
+                    if (!modal) {
+                        // Criar o modal se ainda não existir
+                        const modalHtml = `
+                            <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Imagem do Produto</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body text-center">
+                                            <img id="modalImage" src="" class="img-fluid" alt="Imagem ampliada">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        document.body.insertAdjacentHTML('beforeend', modalHtml);
+                        modal = document.getElementById(modalId);
+                    }
+                    
+                    // Configurar a imagem e exibir o modal
+                    const modalImage = modal.querySelector('#modalImage');
+                    modalImage.src = this.src;
+                    
+                    const bsModal = new bootstrap.Modal(modal);
+                    bsModal.show();
+                });
+            });
+        });
                 }
             });
             

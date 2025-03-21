@@ -1,12 +1,25 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+import os
+from datetime import datetime
+from werkzeug.utils import secure_filename
+import uuid
+
+# Configuração para upload de imagens
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static/uploads')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+# Criar o diretório de uploads se não existir
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Inicialização do Flask e configuração do banco de dados
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///produtos.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'chave-secreta-para-flash-messages'  # Necessário para flash messages
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Limite de 16MB para uploads
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
@@ -21,18 +34,58 @@ class Categoria(db.Model):
     def __repr__(self):
         return f'<Categoria {self.nome}>'
 
-# Modelo de Produto com relacionamento com categoria
+# Modelo de Produto com relacionamento com categoria e imagem
 class Produto(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
     preco = db.Column(db.Float, nullable=False)
     descricao = db.Column(db.Text, nullable=True)
     
+    # Campos para imagem
+    imagem_nome = db.Column(db.String(255), nullable=True)
+    imagem_data = db.Column(db.DateTime, default=datetime.utcnow)
+    
     # Chave estrangeira para Categoria
-    categoria_id = db.Column(db.Integer, db.ForeignKey('categoria.id', name='fk_produto_categoria'), nullable=True)
+    categoria_id = db.Column(db.Integer, db.ForeignKey('categoria.id'), nullable=True)
     
     def __repr__(self):
         return f'<Produto {self.nome}>'
+        
+    @property
+    def imagem_url(self):
+        """Retorna a URL da imagem do produto"""
+        if self.imagem_nome:
+            return f'/uploads/{self.imagem_nome}'
+        return None
+
+# Funções auxiliares para upload de arquivos
+def allowed_file(filename):
+    """Verifica se o arquivo tem uma extensão permitida"""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def save_image(file):
+    """Salva a imagem e retorna o nome seguro do arquivo"""
+    if file and allowed_file(file.filename):
+        # Gerar um nome de arquivo único
+        filename = secure_filename(file.filename)
+        # Adicionar um UUID para garantir unicidade
+        unique_filename = f"{uuid.uuid4().hex}_{filename}"
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+        file.save(file_path)
+        return unique_filename
+    return None
+
+# Rota para servir arquivos de upload
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+# Rota para detalhes do produto
+@app.route('/produto/<int:id>')
+def detalhes_produto(id):
+    produto = Produto.query.get_or_404(id)
+    return render_template('detalhes.html', produto=produto)
 
 # Rota principal - lista produtos
 @app.route('/')
@@ -61,7 +114,6 @@ def listar_produtos():
                           categorias=categorias, 
                           categoria_filtro=categoria_id)
 
-# Rota para adicionar produto
 @app.route('/adicionar', methods=['GET', 'POST'])
 def adicionar_produto():
     # Obter todas as categorias para o select do formulário
@@ -113,6 +165,17 @@ def adicionar_produto():
             if not categoria:
                 errors.append('A categoria selecionada não existe.')
         
+        # Validar imagem
+        imagem_nome = None
+        if 'imagem' in request.files:
+            file = request.files['imagem']
+            if file.filename != '':
+                if not allowed_file(file.filename):
+                    errors.append('Formato de imagem não permitido. Use PNG, JPG, JPEG ou GIF.')
+                else:
+                    # A imagem será salva se não houver erros
+                    pass
+            
         # Se houver erros, mostre-os e volte ao formulário
         if errors:
             for error in errors:
@@ -122,8 +185,20 @@ def adicionar_produto():
                                   produto={'nome': nome, 'preco': preco_str, 'descricao': descricao, 'categoria_id': categoria_id},
                                   categorias=categorias)
         
+        # Processar o upload da imagem se foi enviada
+        if 'imagem' in request.files:
+            file = request.files['imagem']
+            if file.filename != '':
+                imagem_nome = save_image(file)
+        
         # Se não houver erros, prossegue com a adição ao banco
-        novo_produto = Produto(nome=nome, preco=preco, descricao=descricao, categoria_id=categoria_id)
+        novo_produto = Produto(
+            nome=nome, 
+            preco=preco, 
+            descricao=descricao, 
+            categoria_id=categoria_id,
+            imagem_nome=imagem_nome
+        )
         db.session.add(novo_produto)
         db.session.commit()
         
@@ -132,7 +207,6 @@ def adicionar_produto():
     
     return render_template('adicionar.html', categorias=categorias)
 
-# Nova rota para editar produto
 @app.route('/editar/<int:id>', methods=['GET', 'POST'])
 def editar_produto(id):
     produto = Produto.query.get_or_404(id)
@@ -144,6 +218,7 @@ def editar_produto(id):
         preco_str = request.form.get('preco', '').strip()
         descricao = request.form.get('descricao', '').strip()
         categoria_id = request.form.get('categoria_id', None)
+        manter_imagem = request.form.get('manter_imagem', 'false')
         
         # Converter categoria_id para None se vazio ou para inteiro
         if categoria_id:
@@ -184,6 +259,13 @@ def editar_produto(id):
             if not categoria:
                 errors.append('A categoria selecionada não existe.')
         
+        # Validar imagem
+        if 'imagem' in request.files:
+            file = request.files['imagem']
+            if file.filename != '':
+                if not allowed_file(file.filename):
+                    errors.append('Formato de imagem não permitido. Use PNG, JPG, JPEG ou GIF.')
+        
         # Se houver erros, mostre-os e volte ao formulário
         if errors:
             for error in errors:
@@ -194,9 +276,40 @@ def editar_produto(id):
                 'nome': nome,
                 'preco': preco_str, 
                 'descricao': descricao,
-                'categoria_id': categoria_id
+                'categoria_id': categoria_id,
+                'imagem_nome': produto.imagem_nome
             }
             return render_template('editar.html', produto=produto_form, categorias=categorias)
+        
+        # Processar o upload da imagem se foi enviada e não está marcado para manter a atual
+        if manter_imagem != 'true' and 'imagem' in request.files:
+            file = request.files['imagem']
+            if file.filename != '':
+                # Remover imagem antiga se existir
+                if produto.imagem_nome:
+                    try:
+                        old_image_path = os.path.join(app.config['UPLOAD_FOLDER'], produto.imagem_nome)
+                        if os.path.exists(old_image_path):
+                            os.remove(old_image_path)
+                    except Exception as e:
+                        print(f"Erro ao excluir imagem antiga: {e}")
+                
+                # Salvar nova imagem
+                produto.imagem_nome = save_image(file)
+                produto.imagem_data = datetime.utcnow()
+            elif manter_imagem != 'true' and not produto.imagem_nome:
+                # Se não enviou imagem e escolheu não manter a atual, e não tinha imagem
+                produto.imagem_nome = None
+        elif manter_imagem != 'true':
+            # Se escolheu não manter e não enviou nova imagem, remove a atual
+            if produto.imagem_nome:
+                try:
+                    old_image_path = os.path.join(app.config['UPLOAD_FOLDER'], produto.imagem_nome)
+                    if os.path.exists(old_image_path):
+                        os.remove(old_image_path)
+                except Exception as e:
+                    print(f"Erro ao excluir imagem: {e}")
+            produto.imagem_nome = None
         
         # Se não houver erros, atualiza os dados
         produto.nome = nome
@@ -210,12 +323,20 @@ def editar_produto(id):
     
     return render_template('editar.html', produto=produto, categorias=categorias)
 
-# Nova rota para excluir produto
 @app.route('/excluir/<int:id>', methods=['POST'])
 def excluir_produto(id):
     produto = Produto.query.get_or_404(id)
     
     try:
+        # Remover imagem se existir
+        if produto.imagem_nome:
+            try:
+                image_path = os.path.join(app.config['UPLOAD_FOLDER'], produto.imagem_nome)
+                if os.path.exists(image_path):
+                    os.remove(image_path)
+            except Exception as e:
+                print(f"Erro ao excluir imagem: {e}")
+        
         nome_produto = produto.nome  # Guardar o nome para mostrar na mensagem
         db.session.delete(produto)
         db.session.commit()
@@ -326,7 +447,7 @@ def excluir_categoria(id):
 with app.app_context():
     db.create_all()
     
-    # Adicionar categorias de exemplo se o banco estiver vazio
+    # # Adicionar categorias de exemplo se o banco estiver vazio
     # if Categoria.query.count() == 0:
     #     categorias_exemplo = [
     #         Categoria(nome='Roupas'),
@@ -337,7 +458,7 @@ with app.app_context():
     #     db.session.add_all(categorias_exemplo)
     #     db.session.commit()
     
-    # Adicionar produtos de exemplo se o banco estiver vazio
+    # # Adicionar produtos de exemplo se o banco estiver vazio
     # if Produto.query.count() == 0:
     #     # Obter categorias
     #     categoria_roupas = Categoria.query.filter_by(nome='Roupas').first()

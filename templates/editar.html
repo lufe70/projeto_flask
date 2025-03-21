@@ -1,64 +1,92 @@
-{% extends 'base.html' %}
+<div class="mb-3">
+    <label for="imagem" class="form-label">Imagem do Produto:</label>
+    <div class="input-group mb-3">
+        <input type="file" class="form-control" id="imagem" name="imagem" accept="image/*">
+        <div class="form-check form-switch ms-3 d-flex align-items-center">
+            <input class="form-check-input" type="checkbox" id="manter_imagem" name="manter_imagem" value="true" 
+                   {% if produto.imagem_nome %}checked{% endif %}>
+            <label class="form-check-label ms-2" for="manter_imagem">
+                Manter imagem atual
+            </label>
+        </div>
+    </div>
+    <div class="form-text">Formatos permitidos: PNG, JPG, JPEG, GIF (máx. 16MB)</div>
+    
+    {% if produto.imagem_nome %}
+    <div class="mt-2">
+        <p>Imagem atual:</p>
+        <img src="{{ url_for('uploaded_file', filename=produto.imagem_nome) }}" 
+             alt="Imagem do produto" 
+             class="img-thumbnail" 
+             style="max-width: 200px; max-height: 200px;">
+    </div>
+    {% endif %}
+    
+    <div class="mt-2">
+        <img id="preview" src="#" alt="Preview da nova imagem" 
+             style="max-width: 200px; max-height: 200px; display: none;">
+    </div>
+</div>{% extends 'base.html' %}
 
 {% block title %}Editar Produto{% endblock %}
 
 {% block content %}
 <div class="card">
-    <div class="card-header bg-warning">
-        <h2 class="mb-0"><i class="fas fa-edit"></i> Editar Produto</h2>
+<div class="card-header bg-warning">
+<h2 class="mb-0"><i class="fas fa-edit"></i> Editar Produto</h2>
+</div>
+<div class="card-body">
+<form method="post" novalidate enctype="multipart/form-data">
+<div class="mb-3">
+    <label for="nome" class="form-label">Nome do Produto:</label>
+    <input type="text" class="form-control" id="nome" name="nome" 
+           value="{{ produto.nome }}" required minlength="3" maxlength="100">
+    <div class="form-text">Informe o nome completo do produto (3-100 caracteres).</div>
+</div>
+
+<div class="mb-3">
+    <label for="preco" class="form-label">Preço (R$):</label>
+    <div class="input-group">
+        <span class="input-group-text">R$</span>
+        <input type="number" class="form-control" id="preco" name="preco" 
+               step="0.01" min="0" value="{{ produto.preco }}" required>
     </div>
-    <div class="card-body">
-        <form method="post" novalidate>
-            <div class="mb-3">
-                <label for="nome" class="form-label">Nome do Produto:</label>
-                <input type="text" class="form-control" id="nome" name="nome" 
-                       value="{{ produto.nome }}" required minlength="3" maxlength="100">
-                <div class="form-text">Informe o nome completo do produto (3-100 caracteres).</div>
-            </div>
+    <div class="form-text">Apenas valores positivos.</div>
+</div>
 
-            <div class="mb-3">
-                <label for="preco" class="form-label">Preço (R$):</label>
-                <div class="input-group">
-                    <span class="input-group-text">R$</span>
-                    <input type="number" class="form-control" id="preco" name="preco" 
-                           step="0.01" min="0" value="{{ produto.preco }}" required>
-                </div>
-                <div class="form-text">Apenas valores positivos.</div>
-            </div>
-            
-            <div class="mb-3">
-                <label for="categoria_id" class="form-label">Categoria:</label>
-                <select class="form-select" id="categoria_id" name="categoria_id">
-                    <option value="">-- Selecione uma categoria (opcional) --</option>
-                    {% for categoria in categorias %}
-                        <option value="{{ categoria.id }}" 
-                            {% if produto.categoria_id == categoria.id %}selected{% endif %}>
-                            {{ categoria.nome }}
-                        </option>
-                    {% endfor %}
-                </select>
-                <div class="form-text">Você pode deixar sem categoria ou criar uma nova na seção Categorias.</div>
-            </div>
+<div class="mb-3">
+    <label for="categoria_id" class="form-label">Categoria:</label>
+    <select class="form-select" id="categoria_id" name="categoria_id">
+        <option value="">-- Selecione uma categoria (opcional) --</option>
+        {% for categoria in categorias %}
+            <option value="{{ categoria.id }}" 
+                {% if produto.categoria_id == categoria.id %}selected{% endif %}>
+                {{ categoria.nome }}
+            </option>
+        {% endfor %}
+    </select>
+    <div class="form-text">Você pode deixar sem categoria ou criar uma nova na seção Categorias.</div>
+</div>
 
-            <div class="mb-3">
-                <label for="descricao" class="form-label">Descrição:</label>
-                <textarea class="form-control" id="descricao" name="descricao" 
-                          rows="3" maxlength="500">{{ produto.descricao }}</textarea>
-                <div class="form-text">Máximo de 500 caracteres.</div>
-                <div class="char-counter text-muted mt-1">
-                    <small id="descricao-counter">{{ produto.descricao|length }}</small>/500 caracteres
-                </div>
-            </div>
-
-            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                <a href="{{ url_for('listar_produtos') }}" class="btn btn-secondary me-md-2">
-                    <i class="fas fa-arrow-left"></i> Voltar
-                </a>
-                <button type="submit" class="btn btn-warning">
-                    <i class="fas fa-save"></i> Atualizar Produto
-                </button>
-            </div>
-        </form>
+<div class="mb-3">
+    <label for="descricao" class="form-label">Descrição:</label>
+    <textarea class="form-control" id="descricao" name="descricao" 
+              rows="3" maxlength="500">{{ produto.descricao }}</textarea>
+    <div class="form-text">Máximo de 500 caracteres.</div>
+    <div class="char-counter text-muted mt-1">
+        <small id="descricao-counter">{{ produto.descricao|length }}</small>/500 caracteres
     </div>
+</div>
+
+<div class="d-grid gap-2 d-md-flex justify-content-md-end">
+    <a href="{{ url_for('listar_produtos') }}" class="btn btn-secondary me-md-2">
+        <i class="fas fa-arrow-left"></i> Voltar
+    </a>
+    <button type="submit" class="btn btn-warning">
+        <i class="fas fa-save"></i> Atualizar Produto
+    </button>
+</div>
+</form>
+</div>
 </div>
 {% endblock %}
