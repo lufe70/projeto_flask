@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 import os
@@ -88,7 +88,7 @@ def detalhes_produto(id):
     return render_template('detalhes.html', produto=produto)
 
 # Rota principal - lista produtos
-@app.route('/')
+@app.route('/admin')
 def listar_produtos():
     # Opção de filtragem por categoria
     categoria_id = request.args.get('categoria', None)
@@ -442,6 +442,88 @@ def excluir_categoria(id):
         flash(f'Erro ao excluir a categoria: {str(e)}', 'danger')
     
     return redirect(url_for('listar_categorias'))
+
+# Adicione estas rotas ao final do seu app.py, antes da linha "if __name__ == '__main__':"
+
+# Rota da loja com filtro por categoria
+@app.route('/')
+def loja():
+    # Obter filtro de categoria
+    categoria_id = request.args.get('categoria')
+    
+    # Filtrar produtos por categoria, se necessário
+    if categoria_id:
+        try:
+            categoria_id = int(categoria_id)
+            produtos = Produto.query.filter_by(categoria_id=categoria_id).all()
+        except ValueError:
+            produtos = Produto.query.all()
+    else:
+        produtos = Produto.query.all()
+    
+    # Obter todas as categorias para o menu
+    categorias = Categoria.query.all()
+    
+    # Obter o carrinho da sessão
+    carrinho = session.get('carrinho', [])
+    total_itens = sum(item.get('quantidade', 0) for item in carrinho)
+    
+    return render_template('loja.html', 
+                          produtos=produtos, 
+                          categorias=categorias,
+                          total_itens=total_itens,
+                          categoria_atual=categoria_id)
+
+# Rota para adicionar ao carrinho
+@app.route('/adicionar_carrinho/<int:produto_id>', methods=['POST'])
+def adicionar_carrinho(produto_id):
+    produto = Produto.query.get_or_404(produto_id)
+    quantidade = int(request.form.get('quantidade', 1))
+    
+    # Inicializar o carrinho se não existir na sessão
+    if 'carrinho' not in session:
+        session['carrinho'] = []
+    
+    # Verificar se o produto já está no carrinho
+    carrinho = session['carrinho']
+    item_existente = next((item for item in carrinho if item['id'] == produto_id), None)
+    
+    if item_existente:
+        # Atualizar quantidade se o produto já estiver no carrinho
+        item_existente['quantidade'] += quantidade
+        flash(f'Quantidade de {produto.nome} atualizada no carrinho!', 'success')
+    else:
+        # Adicionar novo item ao carrinho
+        carrinho.append({
+            'id': produto_id,
+            'nome': produto.nome,
+            'preco': produto.preco,
+            'quantidade': quantidade,
+            'imagem': produto.imagem_nome
+        })
+        flash(f'{produto.nome} adicionado ao carrinho!', 'success')
+    
+    # Atualizar a sessão
+    session['carrinho'] = carrinho
+    
+    return redirect(url_for('loja'))
+
+# Rota para visualizar carrinho
+@app.route('/carrinho')
+def ver_carrinho():
+    carrinho = session.get('carrinho', [])
+    total = sum(item['preco'] * item['quantidade'] for item in carrinho)
+    
+    return render_template('carrinho.html', carrinho=carrinho, total=total)
+
+# Rota para esvaziar o carrinho
+@app.route('/esvaziar_carrinho', methods=['POST'])
+def esvaziar_carrinho():
+    session.pop('carrinho', None)
+    flash('Carrinho esvaziado com sucesso!', 'success')
+    return redirect(url_for('ver_carrinho'))
+
+
 
 # Criar tabelas e inserir dados de exemplo
 with app.app_context():

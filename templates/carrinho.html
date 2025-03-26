@@ -1,0 +1,91 @@
+{% extends 'loja_base.html' %}
+
+{% block title %}Carrinho de Compras{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Carrinho de Compras</h1>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Seus Itens</h5>
+    </div>
+    <div class="card-body">
+        {% if carrinho %}
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th style="width: 40%">Produto</th>
+                            <th class="text-center">Preço Unitário</th>
+                            <th class="text-center">Quantidade</th>
+                            <th class="text-center">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in carrinho %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if item.imagem %}
+                                        <img src="{{ url_for('uploaded_file', filename=item.imagem) }}" 
+                                             alt="{{ item.nome }}" 
+                                             style="height: 60px; width: 60px; object-fit: contain;" 
+                                             class="me-3 border rounded">
+                                    {% else %}
+                                        <div class="me-3 border rounded p-2 text-center" style="width: 60px; height: 60px;">
+                                            <i class="fas fa-image text-muted"></i>
+                                        </div>
+                                    {% endif %}
+                                    <span class="fw-bold">{{ item.nome }}</span>
+                                </div>
+                            </td>
+                            <td class="text-center">R$ {{ "%.2f"|format(item.preco) }}</td>
+                            <td class="text-center">{{ item.quantidade }}</td>
+                            <td class="text-center">R$ {{ "%.2f"|format(item.preco * item.quantidade) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-primary">
+                            <td colspan="3" class="text-end fw-bold">Total:</td>
+                            <td class="text-center fw-bold">R$ {{ "%.2f"|format(total) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="d-grid gap-2 d-md-flex">
+                        <a href="{{ url_for('loja') }}" class="btn btn-secondary me-md-2">
+                            <i class="fas fa-arrow-left me-1"></i> Continuar Comprando
+                        </a>
+                        <form action="{{ url_for('esvaziar_carrinho') }}" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-outline-danger" 
+                                    onclick="return confirm('Tem certeza que deseja esvaziar o carrinho?')">
+                                <i class="fas fa-trash me-1"></i> Esvaziar Carrinho
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <div class="col-md-6 mt-3 mt-md-0">
+                    <div class="d-grid">
+                        <button type="button" class="btn btn-success btn-lg">
+                            <i class="fas fa-check me-1"></i> Finalizar Compra
+                        </button>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-shopping-cart fa-5x text-muted mb-3"></i>
+                <h3 class="mb-3">Seu carrinho está vazio</h3>
+                <p class="lead mb-4">Parece que você ainda não adicionou nenhum produto ao seu carrinho.</p>
+                <a href="{{ url_for('loja') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-shopping-bag me-2"></i> Explorar Produtos
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
