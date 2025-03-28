@@ -6,6 +6,10 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 import uuid
 
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+
+
 # Configuração para upload de imagens
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static/uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -78,17 +82,23 @@ def save_image(file):
 
 # Rota para servir arquivos de upload
 @app.route('/uploads/<filename>')
+@login_required
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 # Rota para detalhes do produto
 @app.route('/produto/<int:id>')
+@login_required
 def detalhes_produto(id):
     produto = Produto.query.get_or_404(id)
     return render_template('detalhes.html', produto=produto)
 
-# Rota principal - lista produtos
 @app.route('/admin')
+def admin():
+    return redirect(url_for('listar_produtos'))
+# Rota principal - lista produtos
+@app.route('/listar_produtos')
+@login_required
 def listar_produtos():
     # Opção de filtragem por categoria
     categoria_id = request.args.get('categoria', None)
@@ -115,6 +125,7 @@ def listar_produtos():
                           categoria_filtro=categoria_id)
 
 @app.route('/adicionar', methods=['GET', 'POST'])
+@login_required
 def adicionar_produto():
     # Obter todas as categorias para o select do formulário
     categorias = Categoria.query.order_by(Categoria.nome).all()
@@ -208,6 +219,7 @@ def adicionar_produto():
     return render_template('adicionar.html', categorias=categorias)
 
 @app.route('/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
 def editar_produto(id):
     produto = Produto.query.get_or_404(id)
     categorias = Categoria.query.order_by(Categoria.nome).all()
@@ -324,6 +336,7 @@ def editar_produto(id):
     return render_template('editar.html', produto=produto, categorias=categorias)
 
 @app.route('/excluir/<int:id>', methods=['POST'])
+@login_required
 def excluir_produto(id):
     produto = Produto.query.get_or_404(id)
     
@@ -350,11 +363,13 @@ def excluir_produto(id):
 
 # Rotas para gerenciar categorias
 @app.route('/categorias')
+@login_required
 def listar_categorias():
     categorias = Categoria.query.all()
     return render_template('categorias/listar.html', categorias=categorias)
 
 @app.route('/categorias/adicionar', methods=['GET', 'POST'])
+@login_required
 def adicionar_categoria():
     if request.method == 'POST':
         nome = request.form.get('nome', '').strip()
@@ -389,6 +404,7 @@ def adicionar_categoria():
     return render_template('categorias/adicionar.html')
 
 @app.route('/categorias/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
 def editar_categoria(id):
     categoria = Categoria.query.get_or_404(id)
     
@@ -424,6 +440,7 @@ def editar_categoria(id):
     return render_template('categorias/editar.html', categoria=categoria)
 
 @app.route('/categorias/excluir/<int:id>', methods=['POST'])
+@login_required
 def excluir_categoria(id):
     categoria = Categoria.query.get_or_404(id)
     
@@ -524,11 +541,66 @@ def esvaziar_carrinho():
     return redirect(url_for('ver_carrinho'))
 
 
+# Rota de login
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('admin'))
+        
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        user = User.query.filter_by(username=username).first()
+        
+        if user and user.check_password(password):
+            login_user(user)
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('admin'))
+        else:
+            flash('Nome de usuário ou senha incorretos', 'danger')
+            
+    return render_template('login.html')
+
+# Rota de logout
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('Você foi desconectado', 'success')
+    return redirect(url_for('login'))
+
+# Configure o gerenciador de login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'  # Rota para onde redirecionar se não autenticado
+
+# Modelo de usuário para autenticação
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    password_hash = db.Column(db.String(200), nullable=False)
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+        
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 # Criar tabelas e inserir dados de exemplo
 with app.app_context():
     db.create_all()
-    
+    # Adicionar um usuário admin se não existir
+    if not User.query.filter_by(username='admin').first():
+        admin = User(username='admin')
+        admin.set_password('senha123')  # Troque para uma senha mais segura
+        db.session.add(admin)
+        db.session.commit()
+        print('Usuário admin criado')
     # # Adicionar categorias de exemplo se o banco estiver vazio
     # if Categoria.query.count() == 0:
     #     categorias_exemplo = [

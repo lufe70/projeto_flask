@@ -4,3 +4,4 @@ Werkzeug
 Jinja2
 SQLAlchemy
 flask-migrate
+flask-login
